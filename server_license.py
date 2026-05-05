@@ -31,7 +31,7 @@ app.add_middleware(
 # DATABASE SETUP
 # ============================================================
 def get_db():
-    conn = sqlite3.connect("licenses.db")
+    conn = sqlite3.connect("/data/licenses.db")
     conn.row_factory = sqlite3.Row
     return conn
 
