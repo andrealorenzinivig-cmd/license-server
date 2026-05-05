@@ -210,6 +210,51 @@ def list_licenses(secret: str):
     return [dict(l) for l in licenses]
 
 
+@app.delete("/api/admin/license/{license_key}")
+def delete_license(license_key: str, secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    conn = get_db()
+    conn.execute("DELETE FROM activations WHERE license_key = ?", (license_key,))
+    conn.execute("DELETE FROM licenses WHERE key = ?", (license_key,))
+    conn.commit()
+    conn.close()
+    return {"status": "OK", "deleted": license_key}
+
+@app.post("/api/admin/license/{license_key}/disable")
+def disable_license(license_key: str, secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    conn = get_db()
+    conn.execute("UPDATE licenses SET is_active = 0 WHERE key = ?", (license_key,))
+    conn.commit()
+    conn.close()
+    return {"status": "OK", "disabled": license_key}
+
+@app.post("/api/admin/license/{license_key}/enable")
+def enable_license(license_key: str, secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    conn = get_db()
+    conn.execute("UPDATE licenses SET is_active = 1 WHERE key = ?", (license_key,))
+    conn.commit()
+    conn.close()
+    return {"status": "OK", "enabled": license_key}
+
+@app.delete("/api/admin/license/{license_key}/activations")
+def reset_activations(license_key: str, secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    conn = get_db()
+    conn.execute("DELETE FROM activations WHERE license_key = ?", (license_key,))
+    conn.execute("UPDATE licenses SET active_seats = 0 WHERE key = ?", (license_key,))
+    conn.commit()
+    conn.close()
+    return {"status": "OK", "reset": license_key}
+
+
+
+
 @app.get("/")
 def health():
     return {"status": "running", "service": "License Server"}
