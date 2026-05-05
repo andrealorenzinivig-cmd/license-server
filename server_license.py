@@ -71,7 +71,7 @@ class CreateLicenseRequest(BaseModel):
     max_seats: int = 1
     secret: str               # Password admin
 
-ADMIN_SECRET = "cambia-questa-password-admin"  # ← CAMBIA QUESTO!
+ADMIN_SECRET = "Nonmispammare96"  # ← CAMBIA QUESTO!
 
 # ============================================================
 # GENERATORE DI CHIAVI
