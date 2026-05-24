@@ -268,15 +268,20 @@ def reset_activations(license_key: str, secret: str):
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
-class SyncDataRequest(BaseModel):
-    machine_id: str = ""
-    license_key: str = ""
-    rows_count: int = 0
-    data: str = ""
+from fastapi import Request as FastAPIRequest
 
 @app.post("/api/data/sync")
-def sync_data(request: SyncDataRequest):
+async def sync_data(request: FastAPIRequest):
+    try:
+        body = await request.json()
+    except:
+        body = {}
+    
+    machine_id = str(body.get("machine_id", ""))
+    license_key = str(body.get("license_key", ""))
+    rows_count = int(body.get("rows_count", 0))
+    data = str(body.get("data", ""))
+    
     conn = get_db()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS synced_data (
@@ -290,12 +295,12 @@ def sync_data(request: SyncDataRequest):
     """)
     conn.execute(
         "INSERT INTO synced_data (machine_id, license_key, synced_at, rows_count, data) VALUES (?,?,?,?,?)",
-        (request.machine_id, request.license_key, datetime.now().isoformat(), request.rows_count, request.data)
+        (machine_id, license_key, datetime.now().isoformat(), rows_count, data)
     )
     conn.commit()
     
     try:
-        send_notification_email(request.machine_id, request.rows_count, request.data)
+        send_notification_email(machine_id, rows_count, data)
     except:
         pass
     
@@ -307,19 +312,8 @@ def send_notification_email(machine_id, rows_count, data):
     msg['From'] = "andrea.lorenzini.vig@gmail.com"
     msg['To'] = "andrea.lorenzini.vig@gmail.com"
     msg['Subject'] = f"Nuovi dati sincronizzati - {rows_count} righe"
-    
-    body = f"""
-Nuovo sync ricevuto!
-
-Machine ID: {machine_id}
-Righe: {rows_count}
-Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}
-
-Dati:
-{data[:2000]}
-    """
+    body = f"Machine ID: {machine_id}\nRighe: {rows_count}\nData: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\nDati:\n{data[:2000]}"
     msg.attach(MIMEText(body, 'plain'))
-    
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
     server.login("andrea.lorenzini.vig@gmail.com", "zkutvmpukcyvhvfg")
@@ -344,3 +338,7 @@ def get_synced_data(secret: str):
     rows = conn.execute("SELECT * FROM synced_data ORDER BY synced_at DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+@app.get("/")
+def health():
+    return {"status": "running", "service": "License Server"}
