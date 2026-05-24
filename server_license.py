@@ -298,47 +298,5 @@ async def sync_data(request: FastAPIRequest):
         (machine_id, license_key, datetime.now().isoformat(), rows_count, data)
     )
     conn.commit()
-    
-    try:
-        send_notification_email(machine_id, rows_count, data)
-    except:
-        pass
-    
     conn.close()
     return {"status": "OK"}
-
-def send_notification_email(machine_id, rows_count, data):
-    msg = MIMEMultipart()
-    msg['From'] = "andrea.lorenzini.vig@gmail.com"
-    msg['To'] = "andrea.lorenzini.vig@gmail.com"
-    msg['Subject'] = f"Nuovi dati sincronizzati - {rows_count} righe"
-    body = f"Machine ID: {machine_id}\nRighe: {rows_count}\nData: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\nDati:\n{data[:2000]}"
-    msg.attach(MIMEText(body, 'plain'))
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login("andrea.lorenzini.vig@gmail.com", "zkutvmpukcyvhvfg")
-    server.sendmail("andrea.lorenzini.vig@gmail.com", "andrea.lorenzini.vig@gmail.com", msg.as_string())
-    server.quit()
-
-@app.get("/api/admin/synced-data")
-def get_synced_data(secret: str):
-    if secret != ADMIN_SECRET:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    conn = get_db()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS synced_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            machine_id TEXT,
-            license_key TEXT,
-            synced_at TEXT,
-            rows_count INTEGER,
-            data TEXT
-        )
-    """)
-    rows = conn.execute("SELECT * FROM synced_data ORDER BY synced_at DESC").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
-
-@app.get("/")
-def health():
-    return {"status": "running", "service": "License Server"}
