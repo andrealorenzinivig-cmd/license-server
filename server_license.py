@@ -214,7 +214,15 @@ def create_license(req: CreateLicenseRequest):
 
 
 
-
+@app.delete("/api/admin/synced-data/{sync_id}")
+def delete_sync(sync_id: int, secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    conn = get_db()
+    conn.execute("DELETE FROM synced_data WHERE id = ?", (sync_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "OK", "deleted": sync_id}
 
 
 
