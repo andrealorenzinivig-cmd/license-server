@@ -327,7 +327,7 @@ Dati:
     
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    server.login("andrea.lorenzini.vig@gmail.com", "Nonmispammare96!")
+    server.login("andrea.lorenzini.vig@gmail.com", "zkutvmpukcyvhvfg")
     server.sendmail("andrea.lorenzini.vig@gmail.com", "andrea.lorenzini.vig@gmail.com", msg.as_string())
     server.quit()
 
