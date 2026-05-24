@@ -209,6 +209,29 @@ def create_license(req: CreateLicenseRequest):
     }
 
 
+
+
+
+
+
+
+
+
+
+@app.get("/api/admin/synced-data")
+def get_synced_data(secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM synced_data ORDER BY synced_at DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+
+
+
+
 @app.get("/api/admin/licenses")
 def list_licenses(secret: str):
     if secret != ADMIN_SECRET:
