@@ -255,6 +255,109 @@ def reset_activations(license_key: str, secret: str):
 
 
 
+
+
+
+
+
+
+
+
+
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+@app.post("/api/data/sync")
+def sync_data(request: dict):
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS synced_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_id TEXT,
+            license_key TEXT,
+            synced_at TEXT,
+            rows_count INTEGER,
+            data TEXT
+        )
+    """)
+    conn.execute(
+        "INSERT INTO synced_data (machine_id, license_key, synced_at, rows_count, data) VALUES (?,?,?,?,?)",
+        (
+            request.get("machine_id", ""),
+            request.get("license_key", ""),
+            datetime.now().isoformat(),
+            request.get("rows_count", 0),
+            request.get("data", "")
+        )
+    )
+    conn.commit()
+    
+    # Invia email
+    try:
+        send_notification_email(
+            request.get("machine_id", ""),
+            request.get("rows_count", 0),
+            request.get("data", "")
+        )
+    except:
+        pass
+    
+    conn.close()
+    return {"status": "OK"}
+
+def send_notification_email(machine_id, rows_count, data):
+    msg = MIMEMultipart()
+    msg['From'] = "noreply@railway.app"
+    msg['To'] = "andrea.lorenzini.vig@gmail.com"
+    msg['Subject'] = f"Nuovi dati sincronizzati - {rows_count} righe"
+    
+    body = f"""
+Nuovo sync ricevuto!
+
+Machine ID: {machine_id}
+Righe: {rows_count}
+Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+
+Dati:
+{data[:2000]}
+    """
+    msg.attach(MIMEText(body, 'plain'))
+    
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login("andrea.lorenzini.vig@gmail.com", "Nonmispammare96!")
+    server.sendmail("andrea.lorenzini.vig@gmail.com", "andrea.lorenzini.vig@gmail.com", msg.as_string())
+    server.quit()
+
+@app.get("/api/admin/synced-data")
+def get_synced_data(secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS synced_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_id TEXT,
+            license_key TEXT,
+            synced_at TEXT,
+            rows_count INTEGER,
+            data TEXT
+        )
+    """)
+    rows = conn.execute("SELECT * FROM synced_data ORDER BY synced_at DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+
+
+
+
+
+
+
 @app.get("/")
 def health():
     return {"status": "running", "service": "License Server"}
