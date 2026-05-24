@@ -269,8 +269,14 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+class SyncDataRequest(BaseModel):
+    machine_id: str = ""
+    license_key: str = ""
+    rows_count: int = 0
+    data: str = ""
+
 @app.post("/api/data/sync")
-def sync_data(request: dict):
+def sync_data(request: SyncDataRequest):
     conn = get_db()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS synced_data (
@@ -284,23 +290,12 @@ def sync_data(request: dict):
     """)
     conn.execute(
         "INSERT INTO synced_data (machine_id, license_key, synced_at, rows_count, data) VALUES (?,?,?,?,?)",
-        (
-            request.get("machine_id", ""),
-            request.get("license_key", ""),
-            datetime.now().isoformat(),
-            request.get("rows_count", 0),
-            request.get("data", "")
-        )
+        (request.machine_id, request.license_key, datetime.now().isoformat(), request.rows_count, request.data)
     )
     conn.commit()
     
-    # Invia email
     try:
-        send_notification_email(
-            request.get("machine_id", ""),
-            request.get("rows_count", 0),
-            request.get("data", "")
-        )
+        send_notification_email(request.machine_id, request.rows_count, request.data)
     except:
         pass
     
@@ -309,7 +304,7 @@ def sync_data(request: dict):
 
 def send_notification_email(machine_id, rows_count, data):
     msg = MIMEMultipart()
-    msg['From'] = "noreply@railway.app"
+    msg['From'] = "andrea.lorenzini.vig@gmail.com"
     msg['To'] = "andrea.lorenzini.vig@gmail.com"
     msg['Subject'] = f"Nuovi dati sincronizzati - {rows_count} righe"
     
@@ -349,15 +344,3 @@ def get_synced_data(secret: str):
     rows = conn.execute("SELECT * FROM synced_data ORDER BY synced_at DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
-
-
-
-
-
-
-
-
-
-@app.get("/")
-def health():
-    return {"status": "running", "service": "License Server"}
