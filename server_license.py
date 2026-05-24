@@ -42,7 +42,7 @@ def init_db():
             key         TEXT PRIMARY KEY,
             email       TEXT,
             created_at  TEXT,
-            expires_at  TEXT,        -- NULL = lifetime
+            expires_at  TEXT,
             max_seats   INTEGER DEFAULT 1,
             active_seats INTEGER DEFAULT 0,
             is_active   INTEGER DEFAULT 1
@@ -56,6 +56,16 @@ def init_db():
             activated_at TEXT,
             last_seen   TEXT,
             UNIQUE(license_key, machine_id)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS synced_data (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_id  TEXT,
+            license_key TEXT,
+            synced_at   TEXT,
+            rows_count  INTEGER,
+            data        TEXT
         )
     """)
     conn.commit()
