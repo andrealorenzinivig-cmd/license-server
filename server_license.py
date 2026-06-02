@@ -341,3 +341,47 @@ async def sync_data(request: FastAPIRequest):
     conn.commit()
     conn.close()
     return {"status": "OK"}
+
+
+
+
+
+
+
+
+
+@app.post("/api/admin/pun")
+async def update_pun(request: FastAPIRequest, secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    body = await request.json()
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS pun_data (
+            id INTEGER PRIMARY KEY,
+            data TEXT,
+            updated_at TEXT
+        )
+    """)
+    conn.execute("DELETE FROM pun_data")
+    conn.execute("INSERT INTO pun_data (id, data, updated_at) VALUES (1, ?, ?)",
+                 (body.get("data", ""), datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+    return {"status": "OK"}
+
+@app.get("/api/pun")
+def get_pun():
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS pun_data (
+            id INTEGER PRIMARY KEY,
+            data TEXT,
+            updated_at TEXT
+        )
+    """)
+    row = conn.execute("SELECT * FROM pun_data WHERE id=1").fetchone()
+    conn.close()
+    if not row:
+        return {"data": "", "updated_at": ""}
+    return dict(row)
