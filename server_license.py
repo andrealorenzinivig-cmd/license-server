@@ -359,13 +359,16 @@ async def update_pun(request: FastAPIRequest, secret: str):
     conn.execute("""
         CREATE TABLE IF NOT EXISTS pun_data (
             id INTEGER PRIMARY KEY,
-            data TEXT,
+            mensili TEXT,
+            giornalieri TEXT,
             updated_at TEXT
         )
     """)
     conn.execute("DELETE FROM pun_data")
-    conn.execute("INSERT INTO pun_data (id, data, updated_at) VALUES (1, ?, ?)",
-                 (body.get("data", ""), datetime.now().isoformat()))
+    conn.execute(
+        "INSERT INTO pun_data (id, mensili, giornalieri, updated_at) VALUES (1, ?, ?, ?)",
+        (body.get("mensili", ""), body.get("giornalieri", ""), datetime.now().isoformat())
+    )
     conn.commit()
     conn.close()
     return {"status": "OK"}
@@ -376,12 +379,13 @@ def get_pun():
     conn.execute("""
         CREATE TABLE IF NOT EXISTS pun_data (
             id INTEGER PRIMARY KEY,
-            data TEXT,
+            mensili TEXT,
+            giornalieri TEXT,
             updated_at TEXT
         )
     """)
     row = conn.execute("SELECT * FROM pun_data WHERE id=1").fetchone()
     conn.close()
     if not row:
-        return {"data": "", "updated_at": ""}
+        return {"mensili": "", "giornalieri": "", "updated_at": ""}
     return dict(row)
