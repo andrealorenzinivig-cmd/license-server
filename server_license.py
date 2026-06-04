@@ -389,3 +389,58 @@ def get_pun():
     if not row:
         return {"mensili": "", "giornalieri": "", "updated_at": ""}
     return dict(row)
+
+
+
+
+
+
+
+
+@app.get("/api/version")
+def get_version():
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS app_version (
+            id INTEGER PRIMARY KEY,
+            version TEXT,
+            download_url TEXT,
+            note TEXT,
+            updated_at TEXT
+        )
+    """)
+    row = conn.execute("SELECT * FROM app_version WHERE id=1").fetchone()
+    conn.close()
+    if not row:
+        return {"version": "1.0", "download_url": "", "note": "", "updated_at": ""}
+    return dict(row)
+
+@app.post("/api/admin/version")
+async def update_version(request: FastAPIRequest, secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    body = await request.json()
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS app_version (
+            id INTEGER PRIMARY KEY,
+            version TEXT,
+            download_url TEXT,
+            note TEXT,
+            updated_at TEXT
+        )
+    """)
+    conn.execute("DELETE FROM app_version")
+    conn.execute(
+        "INSERT INTO app_version (id, version, download_url, note, updated_at) VALUES (1, ?, ?, ?, ?)",
+        (body.get("version", "1.0"), body.get("download_url", ""), body.get("note", ""), datetime.now().isoformat())
+    )
+    conn.commit()
+    conn.close()
+    return {"status": "OK"}
+
+
+
+
+
+
