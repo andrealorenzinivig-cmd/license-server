@@ -444,3 +444,41 @@ async def update_version(request: FastAPIRequest, secret: str):
 
 
 
+
+
+
+
+import os
+import httpx
+
+@app.get("/api/download/file")
+async def download_file(secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+    if not github_token:
+        raise HTTPException(status_code=500, detail="GitHub token non configurato")
+    
+    # URL API GitHub per scaricare il file dal repo privato
+    url = "https://api.github.com/repos/andrealorenzinivig-cmd/luce-storico/contents/luce storico.xlsm"
+    
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3.raw"
+    }
+    
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url, headers=headers, follow_redirects=True)
+        if r.status_code != 200:
+            raise HTTPException(status_code=500, detail=f"Errore GitHub: {r.status_code}")
+    
+    from fastapi.responses import Response
+    return Response(
+        content=r.content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=luce storico.xlsm"}
+    )
+
+
+
