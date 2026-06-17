@@ -397,6 +397,62 @@ def get_pun():
 
 
 
+
+
+
+
+@app.post("/api/admin/psv")
+async def update_psv(request: FastAPIRequest, secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    body = await request.json()
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS psv_data (
+            id INTEGER PRIMARY KEY,
+            mensili TEXT,
+            giornalieri TEXT,
+            updated_at TEXT
+        )
+    """)
+    conn.execute("DELETE FROM psv_data")
+    conn.execute(
+        "INSERT INTO psv_data (id, mensili, giornalieri, updated_at) VALUES (1, ?, ?, ?)",
+        (body.get("mensili", ""), body.get("giornalieri", ""), datetime.now().isoformat())
+    )
+    conn.commit()
+    conn.close()
+    return {"status": "OK"}
+
+@app.get("/api/psv")
+def get_psv():
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS psv_data (
+            id INTEGER PRIMARY KEY,
+            mensili TEXT,
+            giornalieri TEXT,
+            updated_at TEXT
+        )
+    """)
+    row = conn.execute("SELECT * FROM psv_data WHERE id=1").fetchone()
+    conn.close()
+    if not row:
+        return {"mensili": "", "giornalieri": "", "updated_at": ""}
+    return dict(row)
+
+
+
+
+
+
+
+
+
+
+
+
+
 @app.get("/api/version")
 def get_version():
     conn = get_db()
