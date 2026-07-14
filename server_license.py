@@ -517,7 +517,7 @@ async def download_file(secret: str):
         raise HTTPException(status_code=500, detail="GitHub token non configurato")
     
     # URL API GitHub per scaricare il file dal repo privato
-    url = "https://api.github.com/repos/andrealorenzinivig-cmd/luce-storico/contents/luce storico.xlsm"
+    url = "https://api.github.com/repos/andrealorenzinivig-cmd/luce-storico/contents/Turbolletta.xlsm"
     
     headers = {
         "Authorization": f"token {github_token}",
@@ -533,7 +533,7 @@ async def download_file(secret: str):
     return Response(
         content=r.content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=luce storico.xlsm"}
+        headers={"Content-Disposition": "attachment; filename=Turbolletta.xlsm"}
     )
 
 
